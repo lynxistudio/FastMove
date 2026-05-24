@@ -19,10 +19,13 @@ rm -rf "$BUILD_DIR"
 mkdir -p "$BUNDLE_DIR/Contents/MacOS"
 mkdir -p "$BUNDLE_DIR/Contents/Resources"
 
-# Collect Swift source files
-SWIFT_FILES=$(find "$PROJECT_DIR/$APP_NAME" -name "*.swift" -type f | tr '\n' ' ')
+# Collect Swift source files (array to handle paths with spaces, compatible with bash 3.x)
+SWIFT_FILES=()
+while IFS= read -r -d '' file; do
+    SWIFT_FILES+=("$file")
+done < <(find "$PROJECT_DIR/$APP_NAME" -name "*.swift" -type f -print0 | sort -z)
 
-if [ -z "$SWIFT_FILES" ]; then
+if [ ${#SWIFT_FILES[@]} -eq 0 ]; then
     echo "ERROR: No Swift source files found."
     exit 1
 fi
@@ -39,7 +42,7 @@ swiftc \
     -framework Combine \
     -framework UniformTypeIdentifiers \
     -o "$BUNDLE_DIR/Contents/MacOS/$APP_NAME" \
-    $SWIFT_FILES
+    "${SWIFT_FILES[@]}"
 
 # Create Info.plist
 cat > "$BUNDLE_DIR/Contents/Info.plist" << EOF
