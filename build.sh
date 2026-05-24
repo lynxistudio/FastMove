@@ -70,6 +70,8 @@ cat > "$BUNDLE_DIR/Contents/Info.plist" << EOF
     <string>1</string>
     <key>LSMinimumSystemVersion</key>
     <string>14.0</string>
+    <key>CFBundleIconFile</key>
+    <string>AppIcon</string>
 </dict>
 </plist>
 EOF
