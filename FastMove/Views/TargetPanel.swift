@@ -30,7 +30,7 @@ struct TargetPanel: View {
                 .font(.headline)
             Spacer()
             if viewModel.targetFolder != nil {
-                Button("Clear") {
+                Button(L10n.t("clear")) {
                     viewModel.clearTargetFolder()
                 }
                 .buttonStyle(.plain)

@@ -30,7 +30,7 @@ struct SourcePanel: View {
                 .font(.headline)
             Spacer()
             if !viewModel.sourceItems.isEmpty {
-                Button("Clear All") {
+                Button(L10n.t("clearAll")) {
                     viewModel.removeAllSourceItems()
                 }
                 .buttonStyle(.plain)

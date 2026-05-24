@@ -6,13 +6,11 @@ struct ContentView: View {
     var body: some View {
         GeometryReader { geometry in
             HStack(spacing: 0) {
-                // Left: Source Panel
                 SourcePanel(viewModel: viewModel)
                     .frame(width: max(280, geometry.size.width * 0.38))
 
                 Divider()
 
-                // Right: Target + Progress + Log
                 VStack(spacing: 0) {
                     TargetPanel(viewModel: viewModel)
                         .frame(height: 90)

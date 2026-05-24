@@ -72,7 +72,7 @@ struct ProgressPanel: View {
     private var statsView: some View {
         HStack(spacing: 24) {
             StatItem(
-                label: "Completed",
+                label: L10n.t("completed"),
                 value: "\(service.completedCount)",
                 color: .green
             )
@@ -114,7 +114,7 @@ struct ProgressPanel: View {
                 Button {
                     viewModel.cancelMoving()
                 } label: {
-                    Label("Cancel", systemImage: "stop.circle")
+                    Label(L10n.t("cancel"), systemImage: "stop.circle")
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.borderedProminent)

@@ -25,7 +25,7 @@ struct LogView: View {
             Label("Log", systemImage: "list.bullet.rectangle")
                 .font(.headline)
             Spacer()
-            Text("\(service.logEntries.count) lines")
+            Text("\(service.logEntries.count) \(L10n.t("lines"))")
                 .font(.caption)
                 .foregroundColor(Color(nsColor: .tertiaryLabelColor))
         }
