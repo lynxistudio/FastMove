@@ -1,5 +1,9 @@
 # FastMove
 
+[![Download](https://img.shields.io/badge/Download-v1.0-blue?style=flat-square&logo=github)](https://github.com/lynxistudio/FastMove/releases/latest)
+[![Platform](https://img.shields.io/badge/macOS-14.0%2B-lightgrey?style=flat-square&logo=apple)](https://github.com/lynxistudio/FastMove)
+[![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)](LICENSE)
+
 A macOS utility for moving large numbers of small files to NAS / SMB shares without the Finder bottleneck.
 
 ## Why
