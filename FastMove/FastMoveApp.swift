@@ -5,9 +5,8 @@ struct FastMoveApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
-                .frame(minWidth: 850, minHeight: 550)
+                .frame(minWidth: 720, minHeight: 500)
         }
-        .windowStyle(.titleBar)
         .windowResizability(.contentMinSize)
     }
 }

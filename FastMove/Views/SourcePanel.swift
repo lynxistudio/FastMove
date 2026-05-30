@@ -3,186 +3,199 @@ import UniformTypeIdentifiers
 
 struct SourcePanel: View {
     @ObservedObject var viewModel: MoverViewModel
-    @State private var isTargeted = false
 
     var body: some View {
         VStack(spacing: 0) {
-            // Header
             headerView
+                .padding(.horizontal, 16)
+                .padding(.top, 12)
 
             Divider()
+                .padding(.top, 8)
 
-            // Drop zone or file list
-            if viewModel.sourceItems.isEmpty {
-                dropZoneView
-            } else {
-                fileListView
-            }
+            bodyContent
         }
-        .background(Color(nsColor: .controlBackgroundColor))
+        .background(Color(NSColor.controlBackgroundColor))
     }
 
     // MARK: - Header
 
-    private var headerView: some View {
+    var headerView: some View {
         HStack {
-            Label("Source Files", systemImage: "tray.full")
-                .font(.headline)
+            Image(systemName: "tray.full")
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundColor(.secondary)
+            Text(L10n.t("sourceFiles"))
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundColor(.secondary)
             Spacer()
-            if !viewModel.sourceItems.isEmpty {
-                Button(L10n.t("clearAll")) {
-                    viewModel.removeAllSourceItems()
+            if !viewModel.files.isEmpty {
+                Button(action: { viewModel.clearAll() }) {
+                    Label(L10n.t("clearAll"), systemImage: "trash")
+                        .font(.system(size: 12))
                 }
-                .buttonStyle(.plain)
-                .font(.caption)
+                .buttonStyle(.borderless)
                 .foregroundColor(.secondary)
             }
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
-        .background(Color(nsColor: .windowBackgroundColor))
     }
 
-    // MARK: - Drop Zone
+    // MARK: - Body
 
-    private var dropZoneView: some View {
-        VStack(spacing: 16) {
-            Spacer()
-            Image(systemName: "arrow.down.doc")
-                .font(.system(size: 36))
-                .foregroundColor(.secondary)
-            Text("Drop files or folders here")
-                .font(.title3)
-                .foregroundColor(.secondary)
-            Text("Supports images, videos, documents, folders")
-                .font(.caption)
-                .foregroundColor(Color(nsColor: .tertiaryLabelColor))
-            Spacer()
+    @ViewBuilder
+    var bodyContent: some View {
+        if viewModel.files.isEmpty {
+            dropZoneView
+        } else {
+            fileListWithDropView
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(
-            RoundedRectangle(cornerRadius: 8)
-                .strokeBorder(
-                    isTargeted ? Color.accentColor : Color.secondary.opacity(0.3),
-                    style: StrokeStyle(lineWidth: 2, dash: [6, 4])
+    }
+
+    // MARK: - Empty Drop Zone
+
+    var dropZoneView: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .fill(viewModel.showDropHighlight
+                    ? Color.accentColor.opacity(0.08)
+                    : Color(NSColor.quaternaryLabelColor).opacity(0.3))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .strokeBorder(
+                            viewModel.showDropHighlight
+                                ? Color.accentColor
+                                : Color(NSColor.separatorColor).opacity(0.4),
+                            style: StrokeStyle(lineWidth: 1.5,
+                                dash: viewModel.showDropHighlight ? [] : [6, 3])
+                        )
                 )
-                .padding(12)
-        )
-        .onDrop(of: [.fileURL], isTargeted: $isTargeted) { providers in
-            handleDrop(providers: providers)
+
+            VStack(spacing: 10) {
+                Image(systemName: "arrow.down.doc")
+                    .font(.system(size: 28, weight: .light))
+                    .foregroundColor(viewModel.showDropHighlight ? .accentColor : .secondary.opacity(0.6))
+                Text(L10n.t("dropFilesHere"))
+                    .font(.system(size: 13))
+                    .foregroundColor(.secondary)
+            }
+        }
+        .padding(16)
+        .onDrop(of: [.fileURL], isTargeted: $viewModel.showDropHighlight) { providers in
+            loadURLs(from: providers) { urls in viewModel.addFiles(urls) }
+            return true
+        }
+        .onTapGesture {
+            openFilePicker()
         }
     }
 
-    // MARK: - File List
+    // MARK: - File List With Drop
 
-    private var fileListView: some View {
+    var fileListWithDropView: some View {
         VStack(spacing: 0) {
             // Stats bar
-            statsBar
+            HStack {
+                Text("\(viewModel.totalFileCount) \(L10n.t("items"))")
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundColor(.secondary)
+                Text("•")
+                    .foregroundColor(.secondary.opacity(0.5))
+                Text(viewModel.totalSizeFormatted)
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundColor(.secondary)
+                Spacer()
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 8)
+            .background(Color(NSColor.controlBackgroundColor).opacity(0.5))
 
             Divider()
 
-            // List
-            List {
-                ForEach(viewModel.sourceItems) { item in
-                    FileRowView(item: item) {
-                        viewModel.removeSourceItem(item)
+            // File rows with drop target
+            ScrollView {
+                LazyVStack(spacing: 0) {
+                    ForEach(viewModel.files) { item in
+                        fileRow(item)
+                        Divider().padding(.leading, 36)
                     }
                 }
-                if !viewModel.sourceItems.isEmpty {
-                    dropHintRow
-                }
             }
-            .listStyle(.plain)
+            .overlay(dropOverlay)
         }
-        .onDrop(of: [.fileURL], isTargeted: .constant(false)) { providers in
-            handleDrop(providers: providers)
+        .onDrop(of: [.fileURL], isTargeted: $viewModel.showDropHighlight) { providers in
+            loadURLs(from: providers) { urls in viewModel.addFiles(urls) }
+            return true
         }
     }
 
-    private var statsBar: some View {
-        HStack {
-            Text("\(viewModel.totalSourceCount) item\(viewModel.totalSourceCount == 1 ? "" : "s")")
-                .font(.caption)
-                .foregroundColor(.secondary)
-            Text("·")
-                .foregroundColor(.secondary)
-            Text(viewModel.totalSourceSize.formattedFileSize)
-                .font(.caption)
-                .foregroundColor(.secondary)
-            Spacer()
+    // Drag highlight overlay
+    @ViewBuilder
+    var dropOverlay: some View {
+        if viewModel.showDropHighlight {
+            RoundedRectangle(cornerRadius: 0)
+                .strokeBorder(Color.accentColor, style: StrokeStyle(lineWidth: 2.5))
+                .background(Color.accentColor.opacity(0.06))
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 4)
-        .background(Color(nsColor: .controlBackgroundColor).opacity(0.5))
     }
 
-    private var dropHintRow: some View {
-        HStack {
-            Spacer()
-            Image(systemName: "plus.circle")
-                .font(.caption)
-                .foregroundColor(Color(nsColor: .tertiaryLabelColor))
-            Text("Drop more files here to add")
-                .font(.caption2)
-                .foregroundColor(Color(nsColor: .tertiaryLabelColor))
-            Spacer()
-        }
-        .padding(.vertical, 6)
-    }
+    // MARK: - File Row
 
-    // MARK: - Drop Handler
-
-    private func handleDrop(providers: [NSItemProvider]) -> Bool {
-        for provider in providers {
-            provider.loadItem(forTypeIdentifier: UTType.fileURL.identifier, options: nil) { data, _ in
-                guard let urlData = data as? Data,
-                      let path = String(data: urlData, encoding: .utf8),
-                      let url = URL(string: path) else { return }
-                DispatchQueue.main.async {
-                    viewModel.addSourceItems([url])
-                }
-            }
-        }
-        return true
-    }
-}
-
-// MARK: - File Row
-
-struct FileRowView: View {
-    let item: FileItem
-    let onDelete: () -> Void
-
-    var body: some View {
+    func fileRow(_ item: FileItem) -> some View {
         HStack(spacing: 8) {
-            Image(systemName: item.iconName)
-                .foregroundColor(item.isDirectory ? .blue : .secondary)
+            Image(systemName: item.isDirectory ? "folder" : "doc")
+                .font(.system(size: 14))
+                .foregroundColor(item.isDirectory ? .accentColor : .secondary)
                 .frame(width: 20)
 
-            VStack(alignment: .leading, spacing: 2) {
-                Text(item.name)
-                    .font(.system(size: 13))
-                    .lineLimit(1)
-                    .truncationMode(.middle)
-                Text(item.fileSize.formattedFileSize)
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-            }
+            Text(item.name)
+                .font(.system(size: 13))
+                .lineLimit(1)
+                .truncationMode(.middle)
 
             Spacer()
 
-            Button {
-                onDelete()
-            } label: {
+            Text(item.sizeFormatted)
+                .font(.system(size: 12))
+                .foregroundColor(.secondary)
+
+            Button(action: { viewModel.removeFile(item) }) {
                 Image(systemName: "xmark.circle.fill")
+                    .font(.system(size: 13))
                     .foregroundColor(.secondary)
-                    .font(.system(size: 12))
+                    .opacity(0.6)
             }
             .buttonStyle(.plain)
-            .help("Remove from list")
+            .help(L10n.t("remove"))
         }
-        .padding(.vertical, 2)
-        .padding(.horizontal, 8)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 5)
+        .contentShape(Rectangle())
+    }
+
+    // MARK: - Helpers
+
+    func loadURLs(from providers: [NSItemProvider], completion: @escaping ([URL]) -> Void) {
+        var urls: [URL] = []
+        let group = DispatchGroup()
+        for provider in providers {
+            group.enter()
+            _ = provider.loadObject(ofClass: URL.self) { url, _ in
+                if let url = url { urls.append(url) }
+                group.leave()
+            }
+        }
+        group.notify(queue: .main) { completion(urls) }
+    }
+
+    func openFilePicker() {
+        let panel = NSOpenPanel()
+        panel.allowsMultipleSelection = true
+        panel.canChooseDirectories = true
+        panel.canChooseFiles = true
+        panel.begin { response in
+            if response == .OK {
+                viewModel.addFiles(panel.urls)
+            }
+        }
     }
 }

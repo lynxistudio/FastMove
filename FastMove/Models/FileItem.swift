@@ -1,43 +1,24 @@
 import Foundation
 import UniformTypeIdentifiers
 
-struct FileItem: Identifiable, Equatable, Hashable {
+struct FileItem: Identifiable, Equatable {
     let id = UUID()
     let url: URL
+    let name: String
+    let size: Int64
+    let isDirectory: Bool
 
-    var name: String { url.lastPathComponent }
-
-    var fileSize: Int64 {
-        if let attrs = try? FileManager.default.attributesOfItem(atPath: url.path),
-           let size = attrs[.size] as? Int64 {
-            return size
-        }
-        return 0
+    var sizeFormatted: String {
+        ByteCountFormatter.string(fromByteCount: size, countStyle: .file)
     }
 
-    var isDirectory: Bool {
-        var isDir: ObjCBool = false
-        FileManager.default.fileExists(atPath: url.path, isDirectory: &isDir)
-        return isDir.boolValue
-    }
-
-    var iconName: String {
-        isDirectory ? "folder" : "doc"
-    }
-
-    static func == (lhs: FileItem, rhs: FileItem) -> Bool {
-        lhs.id == rhs.id
-    }
-
-    func hash(into hasher: inout Hasher) {
-        hasher.combine(id)
-    }
-}
-
-extension Int64 {
-    var formattedFileSize: String {
-        let fmt = ByteCountFormatter()
-        fmt.countStyle = .file
-        return fmt.string(fromByteCount: self)
+    static func fromURL(_ url: URL) -> FileItem? {
+        let resourceValues = try? url.resourceValues(forKeys: [.fileSizeKey, .isDirectoryKey])
+        return FileItem(
+            url: url,
+            name: url.lastPathComponent,
+            size: Int64(resourceValues?.fileSize ?? 0),
+            isDirectory: resourceValues?.isDirectory ?? false
+        )
     }
 }

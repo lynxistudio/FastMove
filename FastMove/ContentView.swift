@@ -4,29 +4,34 @@ struct ContentView: View {
     @StateObject private var viewModel = MoverViewModel()
 
     var body: some View {
-        GeometryReader { geometry in
-            HStack(spacing: 0) {
+        ZStack {
+            HSplitView {
                 SourcePanel(viewModel: viewModel)
-                    .frame(width: max(280, geometry.size.width * 0.38))
+                    .frame(minWidth: 280)
 
-                Divider()
+                TargetPanel(viewModel: viewModel)
+                    .frame(minWidth: 320)
+            }
 
-                VStack(spacing: 0) {
-                    TargetPanel(viewModel: viewModel)
-                        .frame(height: 90)
-
-                    Divider()
-
-                    ProgressPanel(viewModel: viewModel)
-                        .frame(height: 130)
-
-                    Divider()
-
-                    LogView(viewModel: viewModel)
+            // Toast overlay
+            if viewModel.showToast {
+                VStack {
+                    Spacer()
+                    Text(viewModel.toastMessage)
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 7)
+                        .background(
+                            RoundedRectangle(cornerRadius: 6)
+                                .fill(Color.black.opacity(0.8))
+                        )
+                        .shadow(color: .black.opacity(0.15), radius: 4, y: 2)
+                        .padding(.bottom, 16)
                 }
-                .frame(width: max(400, geometry.size.width * 0.62))
+                .transition(.move(edge: .bottom).combined(with: .opacity))
+                .animation(.easeInOut(duration: 0.25), value: viewModel.showToast)
             }
         }
-        .frame(minWidth: 800, minHeight: 550)
     }
 }
